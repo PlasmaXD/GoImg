@@ -1,76 +1,70 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>画像アップロード</title>
+
+  <!-- React & Babel6 -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Babel6： optional catch binding 未対応 -->
   <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
   <style>
     body { font-family: sans-serif; margin: 2rem; }
-    img { max-width: 200px; margin: 0.5rem; }
+    img  { max-width: 200px; margin: 0.5rem; border: 1px solid #ddd; }
   </style>
 </head>
 <body>
   <div id="root"></div>
-  <script type="text/babel">
-    function App() {
-      const [file, setFile] = React.useState(null);
-      const [message, setMessage] = React.useState('');
-      const [images, setImages] = React.useState([]);
 
-      const fetchImages = async () => {
-        try {
-          const res = await fetch('/images');
-          const data = await res.json();
-          setImages(data);
-        } catch (err) {
-          console.error(err);
-        }
-      };
+  <!-- JSX を含むので type="text/babel" -->
+<script type="text/babel">
+  const { useState, useEffect } = React;
 
-      React.useEffect(() => {
-        fetchImages();
-      }, []);
+  function App() {
+    const [images, setImages] = useState([]);
 
-      const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!file) return;
-        const formData = new FormData();
-        formData.append('image', file);
-        try {
-          const res = await fetch('/upload', { method: 'POST', body: formData });
-          const text = await res.text();
-          setMessage(text);
-          setFile(null);
-          e.target.reset();
-          fetchImages();
-        } catch (err) {
-          setMessage('アップロード失敗');
-        }
-      };
+    const fetchImages = async () => {
+      try {
+        const res  = await fetch('/images');
+        const data = await res.json();
+        console.log('Fetched /images:', data);
+        const imgs = Array.isArray(data.images)
+          ? data.images
+          : Array.isArray(data)
+            ? data
+            : [];
+        setImages(imgs);
+      } catch (err) {
+        console.error('fetchImages error:', err);
+        setImages([]);
+      }
+    };
 
-      return (
+    useEffect(() => { fetchImages(); }, []);
+
+    return (
+      <div>
+        <h2>画像一覧</h2>
         <div>
-          <h1>画像アップロード</h1>
-          <form onSubmit={handleSubmit}>
-            <input type="file" accept="image/*" onChange={e => setFile(e.target.files[0])} required />
-            <button type="submit">アップロード</button>
-          </form>
-          {message && <p>{message}</p>}
-          <h2>画像一覧</h2>
-          <div>
-            {images.map(img => (
+          {images.length > 0 ? (
+            images.map(img => (
               <div key={img.name}>
                 <img src={img.url} alt={img.name} />
                 <p>{img.name}</p>
               </div>
-            ))}
-          </div>
+            ))
+          ) : (
+            <p>画像がありません</p>
+          )}
         </div>
-      );
-    }
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-  </script>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
 </body>
 </html>

@@ -5,22 +5,31 @@ services:
     image: rabbitmq:3-management
     ports:
       - "5672:5672"
-      - "15672:15672"  # マネジメントUI: http://localhost:15672  (ユーザー/パスワード: guest/guest)
-  
+      - "15672:15672"
+
   minio:
     image: minio/minio
     environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      MINIO_ROOT_USER:  minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+
+      # プリサインド URL に localhost を埋め込む
+      MINIO_SERVER_URL: http://localhost:9000
+
+      # ★ これだけで全オリジン許可 (CSV で複数指定可)
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
+
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"  # API エンドポイント用
-      - "9001:9001"  # ウェブコンソール用
-
-
+      - "9000:9000"   # API
+      - "9001:9001"   # コンソール
 
   api-server:
     build: ./api-server
+    # ← ここから追加
+    volumes:
+      - ./api-server/static:/app/static
+    # ← ここまで
     environment:
       AMQP_URL: "amqp://guest:guest@rabbitmq:5672/"
     ports:
