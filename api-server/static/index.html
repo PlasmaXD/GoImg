@@ -3,27 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <title>画像アップロード</title>
+
   <!-- React & ReactDOM -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <!-- Babel6 -->
   <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
   <style>
     body { font-family: sans-serif; margin: 2rem; }
     img  { max-width: 200px; margin: .5rem; border: 1px solid #ddd; }
     form { margin-bottom: 1rem; }
+    .card { margin-bottom: 1rem; }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
+  <!-- JSX -->
   <script type="text/babel" data-presets="react,es2015">
     const { useState, useEffect } = React;
 
     function App() {
-      const [file,    setFile]    = useState(null);
-      const [msg,     setMsg]     = useState('');
-      const [images,  setImages]  = useState([]);
+      const [file,   setFile]   = useState(null);
+      const [msg,    setMsg]    = useState('');
+      const [images, setImages] = useState([]);
 
       /* ===== 一覧取得 ===== */
       const fetchImages = async () => {
@@ -43,7 +47,19 @@
 
       useEffect(() => { fetchImages(); }, []);
 
-      /* ===== アップロード & ポーリング ===== */
+      /* ===== 削除 ===== */       // ★ 追加
+      const deleteImage = async (name) => {
+        try {
+          await fetch(`/delete?name=${encodeURIComponent(name)}`, { method: 'DELETE' });
+          setImages(prev => prev.filter(img => img.name !== name));
+          setMsg('削除しました');
+        } catch (e) {
+          console.error(e);
+          setMsg('削除失敗');
+        }
+      };
+
+      /* ===== アップロード ===== */
       const handleSubmit = async (e) => {
         e.preventDefault();
         if (!file) return;
@@ -62,13 +78,12 @@
           return;
         }
 
-        /* ---- ポーリング開始 ---- */
+        /* ---- ポーリング ---- */
         let retries = 0;
-        const maxRetries = 20;      // 20回 × 1.5秒 ≒ 30秒
+        const maxRetries = 20;
         const timer = setInterval(async () => {
           retries++;
           const newImgs = await fetchImages();
-          /* 新規画像判定: file.name が含まれるURLがあるか */
           const appeared = newImgs.some(img => img.name.indexOf(file && file.name) !== -1);
           if (appeared || retries >= maxRetries) clearInterval(timer);
         }, 1500);
@@ -83,7 +98,7 @@
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => setFile(e.target.files[0])}
+              onChange={e => setFile(e.target.files[0])}
               required
             />
             <button type="submit">アップロード</button>
@@ -94,9 +109,11 @@
           <h2>画像一覧</h2>
           <div>
             {images.length ? images.map(img => (
-              <div key={img.name}>
+              <div key={img.name} className="card">
                 <img src={img.url} alt={img.name} />
                 <p>{img.name}</p>
+                {/* 削除ボタンを追加 */}
+                <button onClick={() => deleteImage(img.name)}>削除</button>
               </div>
             )) : <p>画像がありません</p>}
           </div>
