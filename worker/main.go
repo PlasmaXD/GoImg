@@ -42,8 +42,6 @@ func connectRabbitMQ() *amqp.Connection {
 	return nil
 }
 func main() {
-	conn := connectRabbitMQ()
-	defer conn.Close()
 	if amqpURL == "" {
 		amqpURL = "amqp://guest:guest@rabbitmq:5672/"
 	}
@@ -57,11 +55,7 @@ func main() {
 		minioSecret = "minioadmin"
 	}
 
-	// RabbitMQ接続
-	conn, err := amqp.Dial(amqpURL)
-	if err != nil {
-		log.Fatalf("RabbitMQ接続失敗: %s", err)
-	}
+	conn := connectRabbitMQ()
 	defer conn.Close()
 
 	ch, err := conn.Channel()
