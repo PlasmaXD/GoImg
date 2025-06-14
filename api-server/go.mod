@@ -1,6 +1,8 @@
 module example.com/api-server
 
-go 1.20
+go 1.23.0
+
+toolchain go1.23.2
 
 require (
 	github.com/disintegration/imaging v1.6.2 // indirect
