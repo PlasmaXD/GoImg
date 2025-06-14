@@ -1,14 +1,76 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>画像アップロード</title>
+  <meta charset="UTF-8">
+  <title>画像アップロード</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    img { max-width: 200px; margin: 0.5rem; }
+  </style>
 </head>
 <body>
-    <h1>画像アップロードフォーム</h1>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="image" accept="image/*" required>
-        <button type="submit">アップロード</button>
-    </form>
+  <div id="root"></div>
+  <script type="text/babel">
+    function App() {
+      const [file, setFile] = React.useState(null);
+      const [message, setMessage] = React.useState('');
+      const [images, setImages] = React.useState([]);
+
+      const fetchImages = async () => {
+        try {
+          const res = await fetch('/images');
+          const data = await res.json();
+          setImages(data);
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      React.useEffect(() => {
+        fetchImages();
+      }, []);
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('image', file);
+        try {
+          const res = await fetch('/upload', { method: 'POST', body: formData });
+          const text = await res.text();
+          setMessage(text);
+          setFile(null);
+          e.target.reset();
+          fetchImages();
+        } catch (err) {
+          setMessage('アップロード失敗');
+        }
+      };
+
+      return (
+        <div>
+          <h1>画像アップロード</h1>
+          <form onSubmit={handleSubmit}>
+            <input type="file" accept="image/*" onChange={e => setFile(e.target.files[0])} required />
+            <button type="submit">アップロード</button>
+          </form>
+          {message && <p>{message}</p>}
+          <h2>画像一覧</h2>
+          <div>
+            {images.map(img => (
+              <div key={img.name}>
+                <img src={img.url} alt={img.name} />
+                <p>{img.name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
 </body>
 </html>
