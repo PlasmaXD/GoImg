@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>専門性を示す成果の入力フォーム</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    label, input {
+      display: block;
+      margin-bottom: 10px;
+    }
+    input[type="text"] {
+      width: 300px;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+  <form action="/submit" method="post">
+    <label for="achievements">
+      ご自身の専門性を示せる成果（研究学会への参加・プログラミングコンテスト等の参加及び受賞履歴等）をお持ちの場合はご記入ください。
+      <br>
+      ※複数ある場合は「、」で区切ってご記入ください。
+    </label>
+    <input type="text" id="achievements" name="achievements" placeholder="例：○○学会参加、××コンテスト受賞">
+    <input type="submit" value="送信">
+  </form>
+</body>
+</html>

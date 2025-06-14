@@ -27,6 +27,21 @@ var (
 	minioClient *minio.Client
 )
 
+// uploadHandler handles image file uploads.
+//
+// For GET requests, it serves the static upload form HTML page.
+// For POST requests, it:
+//  1. Parses the multipart form data with a 10MB size limit
+//  2. Retrieves the uploaded image file from the "image" form field
+//  3. Reads the entire file into memory
+//  4. Establishes a connection to RabbitMQ
+//  5. Opens a channel to RabbitMQ
+//  6. Declares a queue if it doesn't exist
+//  7. Publishes the image file bytes to the queue with the original filename in the headers
+//  8. Responds to the client confirming the image was received
+//
+// Error handling is implemented at each step with appropriate HTTP error responses.
+// The function accepts a maximum file size of 10MB (10 << 20 bytes).
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		// POST以外は静的HTML（アップロードフォーム）を返す

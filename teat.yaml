@@ -1,0 +1,47 @@
+openapi: 3.0.0
+info:
+  title: 商品検索API
+  version: v1
+
+paths:
+  /products:
+    get:
+      summary: キーワードに基づいて商品を検索します。
+      parameters:
+        - in: query
+          name: keyword
+          schema:
+            type: string
+          description: 検索するキーワード
+      responses:
+        '200':
+          description: 検索結果の商品のリスト
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: 商品ID
+                    name:
+                      type: string
+                      description: 商品名
+                    description:
+                      type: string
+                      description: 商品詳細
+                    price:
+                      type: integer
+                      description: 価格
+        '400':
+          description: 無効なリクエスト
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: エラーメッセージ
