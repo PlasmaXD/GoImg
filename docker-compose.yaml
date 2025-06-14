@@ -36,7 +36,8 @@ services:
       - "8080:8080"
     depends_on:
       - rabbitmq
-
+    extra_hosts:
+      - "minio:host-gateway" 
   worker:
     build: ./worker
     environment:
@@ -47,3 +48,5 @@ services:
     depends_on:
       - rabbitmq
       - minio
+    extra_hosts:
+      - "minio:host-gateway"

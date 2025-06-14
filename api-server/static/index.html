@@ -3,68 +3,108 @@
 <head>
   <meta charset="UTF-8" />
   <title>画像アップロード</title>
-
-  <!-- React & Babel6 -->
+  <!-- React & ReactDOM -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <!-- Babel6： optional catch binding 未対応 -->
+  <!-- Babel6 -->
   <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-
   <style>
     body { font-family: sans-serif; margin: 2rem; }
-    img  { max-width: 200px; margin: 0.5rem; border: 1px solid #ddd; }
+    img  { max-width: 200px; margin: .5rem; border: 1px solid #ddd; }
+    form { margin-bottom: 1rem; }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
-  <!-- JSX を含むので type="text/babel" -->
-<script type="text/babel">
-  const { useState, useEffect } = React;
+  <script type="text/babel" data-presets="react,es2015">
+    const { useState, useEffect } = React;
 
-  function App() {
-    const [images, setImages] = useState([]);
+    function App() {
+      const [file,    setFile]    = useState(null);
+      const [msg,     setMsg]     = useState('');
+      const [images,  setImages]  = useState([]);
 
-    const fetchImages = async () => {
-      try {
-        const res  = await fetch('/images');
-        const data = await res.json();
-        console.log('Fetched /images:', data);
-        const imgs = Array.isArray(data.images)
-          ? data.images
-          : Array.isArray(data)
-            ? data
-            : [];
-        setImages(imgs);
-      } catch (err) {
-        console.error('fetchImages error:', err);
-        setImages([]);
-      }
-    };
+      /* ===== 一覧取得 ===== */
+      const fetchImages = async () => {
+        try {
+          const res  = await fetch('/images');
+          const data = await res.json();
+          const imgs = Array.isArray(data && data.images)
+            ? data.images
+            : Array.isArray(data) ? data : [];
+          setImages(imgs);
+          return imgs;
+        } catch (e) {
+          console.error(e);
+          return [];
+        }
+      };
 
-    useEffect(() => { fetchImages(); }, []);
+      useEffect(() => { fetchImages(); }, []);
 
-    return (
-      <div>
-        <h2>画像一覧</h2>
+      /* ===== アップロード & ポーリング ===== */
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!file) return;
+
+        const fd = new FormData();
+        fd.append('image', file);
+
+        try {
+          const res = await fetch('/upload', { method: 'POST', body: fd });
+          setMsg(await res.text());
+          setFile(null);
+          e.target.reset();
+        } catch (e) {
+          console.error(e);
+          setMsg('アップロード失敗');
+          return;
+        }
+
+        /* ---- ポーリング開始 ---- */
+        let retries = 0;
+        const maxRetries = 20;      // 20回 × 1.5秒 ≒ 30秒
+        const timer = setInterval(async () => {
+          retries++;
+          const newImgs = await fetchImages();
+          /* 新規画像判定: file.name が含まれるURLがあるか */
+          const appeared = newImgs.some(img => img.name.indexOf(file && file.name) !== -1);
+          if (appeared || retries >= maxRetries) clearInterval(timer);
+        }, 1500);
+      };
+
+      /* ===== JSX ===== */
+      return (
         <div>
-          {images.length > 0 ? (
-            images.map(img => (
+          <h1>画像アップロード</h1>
+
+          <form onSubmit={handleSubmit}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setFile(e.target.files[0])}
+              required
+            />
+            <button type="submit">アップロード</button>
+          </form>
+
+          {msg && <p>{msg}</p>}
+
+          <h2>画像一覧</h2>
+          <div>
+            {images.length ? images.map(img => (
               <div key={img.name}>
                 <img src={img.url} alt={img.name} />
                 <p>{img.name}</p>
               </div>
-            ))
-          ) : (
-            <p>画像がありません</p>
-          )}
+            )) : <p>画像がありません</p>}
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-</script>
-
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
 </body>
 </html>
