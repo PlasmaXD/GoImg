@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"image/jpeg"
 	"log"
 	"os"
 	"time"
 
 	"github.com/disintegration/imaging"
+	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/streadway/amqp"
@@ -40,8 +42,6 @@ func connectRabbitMQ() *amqp.Connection {
 	return nil
 }
 func main() {
-	conn := connectRabbitMQ()
-	defer conn.Close()
 	if amqpURL == "" {
 		amqpURL = "amqp://guest:guest@rabbitmq:5672/"
 	}
@@ -55,11 +55,7 @@ func main() {
 		minioSecret = "minioadmin"
 	}
 
-	// RabbitMQ接続
-	conn, err := amqp.Dial(amqpURL)
-	if err != nil {
-		log.Fatalf("RabbitMQ接続失敗: %s", err)
-	}
+	conn := connectRabbitMQ()
 	defer conn.Close()
 
 	ch, err := conn.Channel()
@@ -138,13 +134,17 @@ func main() {
 				continue
 			}
 
-			// MinIOへアップロード（ここでは固定のファイル名例。実際はユニークな名前にする等の工夫が必要）
-			_, err = minioClient.PutObject(ctx, minioBucket, "resized.jpg", &bufResized, int64(bufResized.Len()), minio.PutObjectOptions{ContentType: "image/jpeg"})
+			// アップロード用のユニークなファイル名を生成
+			id := uuid.New().String()
+			resizedName := fmt.Sprintf("%s_resized.jpg", id)
+			thumbName := fmt.Sprintf("%s_thumbnail.jpg", id)
+
+			_, err = minioClient.PutObject(ctx, minioBucket, resizedName, &bufResized, int64(bufResized.Len()), minio.PutObjectOptions{ContentType: "image/jpeg"})
 			if err != nil {
 				log.Printf("リサイズ画像アップロード失敗: %s", err)
 				continue
 			}
-			_, err = minioClient.PutObject(ctx, minioBucket, "thumbnail.jpg", &bufThumb, int64(bufThumb.Len()), minio.PutObjectOptions{ContentType: "image/jpeg"})
+			_, err = minioClient.PutObject(ctx, minioBucket, thumbName, &bufThumb, int64(bufThumb.Len()), minio.PutObjectOptions{ContentType: "image/jpeg"})
 			if err != nil {
 				log.Printf("サムネイルアップロード失敗: %s", err)
 				continue
